@@ -21,24 +21,19 @@ services:
       start_period: 45s
     restart: unless-stopped
 
-  caddy:
-    image: caddy:2.10
+  nginx:
+    image: nginx:1.27-alpine
     depends_on:
       web:
         condition: service_healthy
     ports:
       - "80:80"
-      - "443:443"
-    env_file:
-      - ${ENV_FILE:-.env}
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - media_data:/srv/media:ro
       - static_data:/srv/staticfiles:ro
-      - caddy_data:/data
-      - caddy_config:/config
     healthcheck:
-      test: ["CMD", "caddy", "validate", "--config", "/etc/caddy/Caddyfile"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/o/.well-known/openid-configuration || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -48,5 +43,3 @@ volumes:
   sqlite_data:
   media_data:
   static_data:
-  caddy_data:
-  caddy_config:

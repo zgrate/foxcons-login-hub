@@ -77,7 +77,6 @@ This Django application serves as an OpenID Connect (OIDC) provider for authenti
    ```
 2. Edit `.env` and set at least:
    - `SECRET_KEY`
-   - `DOMAIN`
    - `ALLOWED_HOSTS`
    - `CSRF_TRUSTED_ORIGINS`
    - `OIDC_RSA_PRIVATE_KEY` (single line with `\n` separators)
@@ -88,12 +87,12 @@ This Django application serves as an OpenID Connect (OIDC) provider for authenti
 
 What this stack includes:
 - `web`: Django + Gunicorn, runs migrations and `collectstatic` on startup
-- `caddy`: Reverse proxy, static/media file serving, HTTPS termination
-- Named volumes for persistent SQLite, media, static files, and Caddy state
+- `nginx`: Reverse proxy and static/media file serving over HTTP
+- Named volumes for persistent SQLite, media, and static files
 
 Useful commands:
 ```
 docker compose -f docker-compose.prod.yml logs -f web
-docker compose -f docker-compose.prod.yml logs -f caddy
+docker compose -f docker-compose.prod.yml logs -f nginx
 docker compose -f docker-compose.prod.yml down
 ```
