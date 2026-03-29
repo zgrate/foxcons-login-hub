@@ -80,14 +80,21 @@ This Django application serves as an OpenID Connect (OIDC) provider for authenti
    - `ALLOWED_HOSTS`
    - `CSRF_TRUSTED_ORIGINS`
    - `OIDC_RSA_PRIVATE_KEY` (single line with `\n` separators)
+   - `SECURE_PROXY_SSL_HEADER=HTTP_X_FORWARDED_PROTO,https` when using Nginx Proxy Manager for HTTPS
 3. Build and start:
    ```
    docker compose -f docker-compose.prod.yml up -d --build
    ```
 
+Nginx Proxy Manager setup:
+- This stack exposes its inner nginx on host port `8080` by default.
+- Point Nginx Proxy Manager at `http://host-or-container:8080`.
+- Keep TLS termination in Nginx Proxy Manager.
+- Forward the standard proxy headers so Django sees the original `https` scheme.
+
 What this stack includes:
 - `web`: Django + Gunicorn, runs migrations and `collectstatic` on startup
-- `nginx`: Reverse proxy and static/media file serving over HTTP
+- `nginx`: Reverse proxy and static/media file serving over HTTP, compatible with an outer Nginx Proxy Manager
 - Named volumes for persistent SQLite, media, and static files
 
 Useful commands:
