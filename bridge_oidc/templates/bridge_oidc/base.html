@@ -1,0 +1,143 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Foxcons Auth{% endblock %}</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'bridge_oidc/branding/favicon.svg' %}">
+  <link rel="apple-touch-icon" href="{% static 'bridge_oidc/branding/favicon.svg' %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sen:wght@400;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sen: ['Sen', 'sans-serif'],
+          },
+          colors: {
+            surface: 'rgba(255,255,255,0.05)',
+            accentBlue: '#145eb8',
+            brandSky: '#7dd3fc',
+            brandSkyDeep: '#0284c7',
+            brandNavy: '#031652',
+            brandBlue: '#042297',
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    :root {
+      --brand-sky: #fca5a5;
+      --brand-sky-rgb: 252, 165, 165;
+      --brand-sky-deep: #ef4444;
+      --brand-blue: #7f1d1d;
+      --brand-navy: #450a0a;
+      --brand-accent: #ef4444;
+      --brand-accent-rgb: 239, 68, 68;
+      --brand-hero-text: #2b0a0a;
+      --brand-accent-soft: rgba(var(--brand-accent-rgb), 0.28);
+      --brand-panel: linear-gradient(135deg, rgba(var(--brand-accent-rgb), 0.2), rgba(var(--brand-sky-rgb), 0.12));
+    }
+    html, body {
+      background-color: var(--brand-navy);
+      color: #f4f4f5;
+      font-family: 'Sen', sans-serif;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(to top right, var(--brand-blue), var(--brand-navy), var(--brand-blue));
+      z-index: -2;
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at top center, rgba(var(--brand-sky-rgb), 0.16), transparent 36%),
+        radial-gradient(circle at bottom right, rgba(var(--brand-accent-rgb), 0.2), transparent 34%);
+      z-index: -1;
+      pointer-events: none;
+    }
+    .glass {
+      background: var(--brand-panel);
+      border: 2px solid var(--brand-accent-soft);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+    }
+    .glass-darker {
+      background: linear-gradient(135deg, rgba(3, 22, 82, 0.72), rgba(4, 34, 151, 0.34));
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+    /* Focus-visible ring override for dark theme */
+    input:focus-visible { outline: none; }
+    /* Smooth card entrance */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp 0.35s ease both; }
+    .event-card {
+      border: 2px solid rgba(var(--brand-accent-rgb), 0.38);
+      box-shadow: 0 8px 22px rgba(1, 11, 42, 0.18);
+    }
+    .event-card:hover {
+      background: linear-gradient(135deg, rgba(var(--brand-accent-rgb), 0.22), rgba(var(--brand-sky-rgb), 0.16)) !important;
+      border-color: rgba(var(--brand-sky-rgb), 0.58) !important;
+      transform: scale(1.02);
+    }
+    .event-card.selected {
+      border-color: rgb(var(--brand-sky-rgb)) !important;
+      background: linear-gradient(135deg, rgba(var(--brand-accent-rgb), 0.28), rgba(var(--brand-sky-rgb), 0.18)) !important;
+      box-shadow: 0 0 0 1px rgba(var(--brand-sky-rgb), 0.14), 0 14px 36px rgba(1, 11, 42, 0.28);
+    }
+    .event-card.selected .event-check { opacity: 1 !important; }
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus,
+    input:-webkit-autofill:active {
+      -webkit-box-shadow: 0 0 0 1000px #08173f inset !important;
+      -webkit-text-fill-color: #ffffff !important;
+      caret-color: #ffffff;
+      border-color: rgba(var(--brand-sky-rgb), 0.32) !important;
+      transition: background-color 9999s ease-in-out 0s;
+    }
+    input[type="email"], input[type="password"] {
+      background: linear-gradient(135deg, rgba(8, 23, 63, 0.94), rgba(7, 33, 102, 0.55));
+      color: #ffffff;
+      border: 1px solid rgba(var(--brand-sky-rgb), 0.2);
+    }
+    input[type="email"]:focus, input[type="password"]:focus {
+      border-color: rgba(var(--brand-sky-rgb), 0.62);
+      box-shadow: 0 0 0 3px rgba(var(--brand-sky-rgb), 0.16);
+    }
+    input::placeholder { color: rgba(255,255,255,0.3); }
+    .foxcons-primary {
+      background: linear-gradient(135deg, var(--brand-accent), var(--brand-sky-deep));
+      color: #fff;
+      box-shadow: 0 12px 26px rgba(var(--brand-accent-rgb), 0.35);
+    }
+    .foxcons-primary:hover {
+      background: linear-gradient(135deg, var(--brand-sky-deep), var(--brand-sky));
+    }
+    .foxcons-hero {
+      background: linear-gradient(to top right, var(--brand-sky), var(--brand-sky-deep));
+      color: var(--brand-hero-text);
+    }
+  </style>
+  {% block extra_head %}{% endblock %}
+</head>
+<body
+  class="min-h-screen flex items-center justify-center p-4 antialiased font-sen"
+  style="{% if theme_sky %}--brand-sky: {{ theme_sky }};{% endif %}{% if theme_sky_deep %}--brand-sky-deep: {{ theme_sky_deep }};{% endif %}{% if theme_blue %}--brand-blue: {{ theme_blue }};{% endif %}{% if theme_navy %}--brand-navy: {{ theme_navy }};{% endif %}{% if theme_accent %}--brand-accent: {{ theme_accent }};{% endif %}{% if theme_text %}--brand-hero-text: {{ theme_text }};{% endif %}{% if theme_sky_rgb %}--brand-sky-rgb: {{ theme_sky_rgb }};{% endif %}{% if theme_accent_rgb %}--brand-accent-rgb: {{ theme_accent_rgb }};{% endif %}"
+>
+  {% block content %}{% endblock %}
+</body>
+</html>
