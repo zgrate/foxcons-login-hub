@@ -30,7 +30,7 @@ msgstr "Żądanie autoryzacji"
 #: bridge_oidc/templates/bridge_oidc/authorize.html:13
 msgid ""
 "A connected application is requesting access to your Foxcons identity claims."
-msgstr "Połączona aplikacja prosi o dostęp do Twoich danych tożsamości Foxcons."
+msgstr "Połączona aplikacja prosi o dostęp do Twoich danych."
 
 #: bridge_oidc/templates/bridge_oidc/authorize.html:21
 msgid "Signed in as"
@@ -74,7 +74,7 @@ msgstr "Kontynuuj sesję"
 #: bridge_oidc/templates/bridge_oidc/continue.html:13
 msgid ""
 "Reuse your existing Foxcons session or switch to a different event/account."
-msgstr "Użyj istniejącej sesji Foxcons lub przełącz na inne wydarzenie/konto."
+msgstr "Użyj istniejącej sesji lub przełącz na inne wydarzenie/konto."
 
 #: bridge_oidc/templates/bridge_oidc/continue.html:60
 msgid "Event"
@@ -98,7 +98,7 @@ msgstr "FOXCONS LOGIN HUB"
 msgid ""
 "Sign in to continue with your event account and pass the current Foxcons "
 "identity into authentik."
-msgstr "Zaloguj się, aby kontynuować na koncie wydarzenia i przekazać aktualną tożsamość Foxcons do authentik."
+msgstr "Zaloguj się do wydarzenia, aby przekazać swoje dane dalej."
 
 #: bridge_oidc/templates/bridge_oidc/login.html:27
 msgid "Select your event"
@@ -106,14 +106,14 @@ msgstr "Wybierz wydarzenie"
 
 #: bridge_oidc/templates/bridge_oidc/login.html:28
 msgid "Choose a Foxcons instance"
-msgstr "Wybierz instancję Foxcons"
+msgstr "Wybierz wydarzenie"
 
 #: bridge_oidc/templates/bridge_oidc/login.html:30
 msgid ""
 "Pick the event you want to authenticate against. The selected Foxcons "
 "instance defines where credentials are checked and which live claims are "
 "forwarded."
-msgstr "Wybierz wydarzenie, w którym chcesz się uwierzytelnić. Wybrana instancja Foxcons określa, gdzie sprawdzane są dane logowania i jakie aktualne deklaracje są przekazywane dalej."
+msgstr "Wybierz wydarzenie, w którym chcesz się uwierzytelnić."
 
 #: bridge_oidc/templates/bridge_oidc/login.html:68
 msgid "Convention instance"
@@ -133,7 +133,7 @@ msgstr "E-mail"
 
 #: bridge_oidc/templates/bridge_oidc/login.html:116
 msgid "you@example.com"
-msgstr "ty@example.com"
+msgstr "sample@example.com"
 
 #: bridge_oidc/templates/bridge_oidc/login.html:125
 msgid "Password"
