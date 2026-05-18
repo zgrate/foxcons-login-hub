@@ -46,6 +46,10 @@ This Django application serves as an OpenID Connect (OIDC) provider for authenti
    python manage.py runserver
    ```
 
+## Docker
+
+When you start the stack with `docker compose -f docker-compose.prod.yml up -d --build`, the web container now runs `compilemessages` during startup, so translation files are compiled automatically inside the container as long as the source `.po` files are present in the image.
+
 ## Endpoints
 
 - `/o/.well-known/openid-configuration` - OIDC discovery
