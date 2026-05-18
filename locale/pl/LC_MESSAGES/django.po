@@ -1,0 +1,156 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-05-18 22:56+0200\n"
+"PO-Revision-Date: 2026-05-18 23:05+0200\n"
+"Last-Translator: Foxcons Bridge Team <noreply@example.com>\n"
+"Language-Team: Polish\n"
+"Language: pl\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=4; plural=(n==1 ? 0 : (n%10>=2 && n%10<=4) && "
+"(n%100<12 || n%100>14) ? 1 : n!=1 && (n%10>=0 && n%10<=1) || (n%10>=5 && "
+"n%10<=9) || (n%100>=12 && n%100<=14) ? 2 : 3);\n"
+#: bridge_oidc/templates/bridge_oidc/authorize.html:4
+#: bridge_oidc/templates/bridge_oidc/authorize.html:78
+msgid "Authorize"
+msgstr "Autoryzuj"
+
+#: bridge_oidc/templates/bridge_oidc/authorize.html:11
+msgid "Authorization Request"
+msgstr "Żądanie autoryzacji"
+
+#: bridge_oidc/templates/bridge_oidc/authorize.html:13
+msgid ""
+"A connected application is requesting access to your Foxcons identity claims."
+msgstr "Połączona aplikacja prosi o dostęp do Twoich danych tożsamości Foxcons."
+
+#: bridge_oidc/templates/bridge_oidc/authorize.html:21
+msgid "Signed in as"
+msgstr "Zalogowano jako"
+
+#: bridge_oidc/templates/bridge_oidc/authorize.html:36
+msgid "Requested permissions"
+msgstr "Wymagane uprawnienia"
+
+#: bridge_oidc/templates/bridge_oidc/authorize.html:52
+msgid "User identification"
+msgstr "Identyfikacja użytkownika"
+
+#: bridge_oidc/templates/bridge_oidc/authorize.html:58
+msgid "Email address"
+msgstr "Adres e-mail"
+
+#: bridge_oidc/templates/bridge_oidc/authorize.html:64
+msgid "Profile information"
+msgstr "Informacje o profilu"
+
+#: bridge_oidc/templates/bridge_oidc/authorize.html:81
+msgid "Deny"
+msgstr "Odrzuć"
+
+#: bridge_oidc/templates/bridge_oidc/authorize.html:86
+#: bridge_oidc/templates/bridge_oidc/continue.html:105
+msgid "Use a different account"
+msgstr "Użyj innego konta"
+
+#: bridge_oidc/templates/bridge_oidc/base.html:8
+#: bridge_oidc/templates/bridge_oidc/login.html:12
+msgid "Foxcons Auth"
+msgstr "Foxcons Auth"
+
+#: bridge_oidc/templates/bridge_oidc/continue.html:4
+#: bridge_oidc/templates/bridge_oidc/continue.html:11
+msgid "Continue Session"
+msgstr "Kontynuuj sesję"
+
+#: bridge_oidc/templates/bridge_oidc/continue.html:13
+msgid ""
+"Reuse your existing Foxcons session or switch to a different event/account."
+msgstr "Użyj istniejącej sesji Foxcons lub przełącz na inne wydarzenie/konto."
+
+#: bridge_oidc/templates/bridge_oidc/continue.html:60
+msgid "Event"
+msgstr "Wydarzenie"
+
+#: bridge_oidc/templates/bridge_oidc/continue.html:88
+#, python-format
+msgid "Continue as %(display_name)s"
+msgstr "Kontynuuj jako %(display_name)s"
+
+#: bridge_oidc/templates/bridge_oidc/login.html:4
+#: bridge_oidc/templates/bridge_oidc/login.html:148
+msgid "Sign In"
+msgstr "Zaloguj się"
+
+#: bridge_oidc/templates/bridge_oidc/login.html:16
+msgid "FOXCONS LOGIN HUB"
+msgstr "FOXCONS LOGIN HUB"
+
+#: bridge_oidc/templates/bridge_oidc/login.html:19
+msgid ""
+"Sign in to continue with your event account and pass the current Foxcons "
+"identity into authentik."
+msgstr "Zaloguj się, aby kontynuować na koncie wydarzenia i przekazać aktualną tożsamość Foxcons do authentik."
+
+#: bridge_oidc/templates/bridge_oidc/login.html:27
+msgid "Select your event"
+msgstr "Wybierz wydarzenie"
+
+#: bridge_oidc/templates/bridge_oidc/login.html:28
+msgid "Choose a Foxcons instance"
+msgstr "Wybierz instancję Foxcons"
+
+#: bridge_oidc/templates/bridge_oidc/login.html:30
+msgid ""
+"Pick the event you want to authenticate against. The selected Foxcons "
+"instance defines where credentials are checked and which live claims are "
+"forwarded."
+msgstr "Wybierz wydarzenie, w którym chcesz się uwierzytelnić. Wybrana instancja Foxcons określa, gdzie sprawdzane są dane logowania i jakie aktualne deklaracje są przekazywane dalej."
+
+#: bridge_oidc/templates/bridge_oidc/login.html:68
+msgid "Convention instance"
+msgstr "Instancja konwentu"
+
+#: bridge_oidc/templates/bridge_oidc/login.html:73
+msgid "No events are currently available."
+msgstr "Obecnie nie ma dostępnych wydarzeń."
+
+#: bridge_oidc/templates/bridge_oidc/login.html:81
+msgid "Sign in to"
+msgstr "Zaloguj się do"
+
+#: bridge_oidc/templates/bridge_oidc/login.html:104
+msgid "Email"
+msgstr "E-mail"
+
+#: bridge_oidc/templates/bridge_oidc/login.html:116
+msgid "you@example.com"
+msgstr "ty@example.com"
+
+#: bridge_oidc/templates/bridge_oidc/login.html:125
+msgid "Password"
+msgstr "Hasło"
+
+#: bridge_oidc/templates/bridge_oidc/login.html:136
+msgid "••••••••"
+msgstr "••••••••"
+
+#: bridge_oidc/views.py:117
+msgid "Too many login attempts. Please wait a few minutes and try again."
+msgstr "Zbyt wiele prób logowania. Poczekaj kilka minut i spróbuj ponownie."
+
+#: bridge_oidc/views.py:142
+msgid "Invalid credentials or instance unavailable"
+msgstr "Nieprawidłowe dane logowania lub instancja jest niedostępna"
+
+#: bridge_oidc/views.py:218
+msgid "Your saved session could not be refreshed. Please sign in again."
+msgstr "Nie udało się odświeżyć zapisanej sesji. Zaloguj się ponownie."

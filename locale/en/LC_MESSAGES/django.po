@@ -1,0 +1,154 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-05-18 22:56+0200\n"
+"PO-Revision-Date: 2026-05-18 23:05+0200\n"
+"Last-Translator: Foxcons Bridge Team <noreply@example.com>\n"
+"Language-Team: English\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+#: bridge_oidc/templates/bridge_oidc/authorize.html:4
+#: bridge_oidc/templates/bridge_oidc/authorize.html:78
+msgid "Authorize"
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/authorize.html:11
+msgid "Authorization Request"
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/authorize.html:13
+msgid ""
+"A connected application is requesting access to your Foxcons identity claims."
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/authorize.html:21
+msgid "Signed in as"
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/authorize.html:36
+msgid "Requested permissions"
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/authorize.html:52
+msgid "User identification"
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/authorize.html:58
+msgid "Email address"
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/authorize.html:64
+msgid "Profile information"
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/authorize.html:81
+msgid "Deny"
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/authorize.html:86
+#: bridge_oidc/templates/bridge_oidc/continue.html:105
+msgid "Use a different account"
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/base.html:8
+#: bridge_oidc/templates/bridge_oidc/login.html:12
+msgid "Foxcons Auth"
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/continue.html:4
+#: bridge_oidc/templates/bridge_oidc/continue.html:11
+msgid "Continue Session"
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/continue.html:13
+msgid ""
+"Reuse your existing Foxcons session or switch to a different event/account."
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/continue.html:60
+msgid "Event"
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/continue.html:88
+#, python-format
+msgid "Continue as %(display_name)s"
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/login.html:4
+#: bridge_oidc/templates/bridge_oidc/login.html:148
+msgid "Sign In"
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/login.html:16
+msgid "FOXCONS LOGIN HUB"
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/login.html:19
+msgid ""
+"Sign in to continue with your event account and pass the current Foxcons "
+"identity into authentik."
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/login.html:27
+msgid "Select your event"
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/login.html:28
+msgid "Choose a Foxcons instance"
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/login.html:30
+msgid ""
+"Pick the event you want to authenticate against. The selected Foxcons "
+"instance defines where credentials are checked and which live claims are "
+"forwarded."
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/login.html:68
+msgid "Convention instance"
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/login.html:73
+msgid "No events are currently available."
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/login.html:81
+msgid "Sign in to"
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/login.html:104
+msgid "Email"
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/login.html:116
+msgid "you@example.com"
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/login.html:125
+msgid "Password"
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/login.html:136
+msgid "••••••••"
+msgstr ""
+
+#: bridge_oidc/views.py:117
+msgid "Too many login attempts. Please wait a few minutes and try again."
+msgstr ""
+
+#: bridge_oidc/views.py:142
+msgid "Invalid credentials or instance unavailable"
+msgstr ""
+
+#: bridge_oidc/views.py:218
+msgid "Your saved session could not be refreshed. Please sign in again."
+msgstr ""

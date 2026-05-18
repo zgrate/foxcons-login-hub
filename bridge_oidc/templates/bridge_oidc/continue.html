@@ -1,16 +1,16 @@
 {% extends "bridge_oidc/base.html" %}
-{% load static %}
+{% load i18n static %}
 
-{% block title %}Continue Session — Foxcons{% endblock %}
+{% block title %}{% trans "Continue Session" %} - Foxcons{% endblock %}
 
 {% block content %}
 <div class="w-full max-w-5xl fade-up overflow-hidden rounded-[2rem] shadow-2xl shadow-black/35">
   <section class="foxcons-hero px-6 py-10 sm:px-10 sm:py-14 text-center">
     <div class="max-w-3xl mx-auto flex flex-col items-center gap-3">
       <img src="{% static 'bridge_oidc/branding/login-icon.svg' %}" alt="Foxcons" class="h-20 sm:h-24 w-auto object-contain">
-      <h1 class="font-extrabold text-3xl sm:text-5xl tracking-tight" style="color: var(--brand-hero-text);">Continue Session</h1>
+      <h1 class="font-extrabold text-3xl sm:text-5xl tracking-tight" style="color: var(--brand-hero-text);">{% trans "Continue Session" %}</h1>
       <p class="text-base sm:text-lg max-w-2xl" style="color: color-mix(in srgb, var(--brand-hero-text) 88%, black 12%);">
-        Reuse your existing Foxcons session or switch to a different event/account.
+        {% trans "Reuse your existing Foxcons session or switch to a different event/account." %}
       </p>
     </div>
   </section>
@@ -57,7 +57,7 @@
               <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
               <line x1="3" y1="10" x2="21" y2="10"/>
             </svg>
-            <span>Event</span>
+            <span>{% trans "Event" %}</span>
           </div>
           <span class="text-zinc-100 font-semibold text-right truncate">{{ event_name|default:current_instance_name }}</span>
         </div>
@@ -85,7 +85,7 @@
             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="20 6 9 17 4 12"/>
             </svg>
-            Continue as {{ display_name }}
+            {% blocktrans %}Continue as {{ display_name }}{% endblocktrans %}
           </button>
         </form>
         {% endif %}
@@ -102,7 +102,7 @@
               <circle cx="9" cy="7" r="4"/>
               <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
             </svg>
-            Use a different account
+            {% trans "Use a different account" %}
           </button>
         </form>
       </div>

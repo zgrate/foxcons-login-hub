@@ -22,6 +22,7 @@ from bridge_oidc.views import BridgeUserInfoView, BridgeTokenView, BridgeAuthori
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('i18n/', include('django.conf.urls.i18n')),
     path('o/authorize/', BridgeAuthorizationView.as_view(), name='authorize'),
     path('o/token/', BridgeTokenView.as_view(), name='token'),
     path('o/userinfo/', BridgeUserInfoView.as_view(), name='userinfo'),

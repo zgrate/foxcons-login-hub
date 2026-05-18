@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.contrib.auth import login as auth_login
+from django.utils.translation import gettext_lazy as _
 from instances.models import FoxconsInstance
 from foxcons.services import authenticate_with_password, authenticate_with_refresh
 from foxcons.client import FoxconsClientError
@@ -113,7 +114,7 @@ def login_view(request):
         email = request.POST.get('email')
         password = request.POST.get('password')
         if _is_login_rate_limited(request, email):
-            error = 'Too many login attempts. Please wait a few minutes and try again.'
+            error = _('Too many login attempts. Please wait a few minutes and try again.')
         else:
             try:
                 instance = FoxconsInstance.objects.get(id=instance_id, is_active=True)
@@ -138,7 +139,7 @@ def login_view(request):
                 return redirect(redirect_url)
             except (FoxconsInstance.DoesNotExist, FoxconsClientError, ValueError):
                 _record_login_attempt(request, email, success=False)
-                error = "Invalid credentials or instance unavailable"
+                error = _('Invalid credentials or instance unavailable')
 
     instances = FoxconsInstance.objects.filter(is_active=True).order_by('display_order', 'name')
     selected_instance_id = request.session.get('selected_instance_id')
@@ -214,7 +215,7 @@ def continue_view(request):
             for key in ['foxcons_access_token', 'foxcons_refresh_token', 'normalized_claims', 'last_auth_at']:
                 request.session.pop(key, None)
             request.session.pop('bridge_authorize_confirmed', None)
-            error = "Your saved session could not be refreshed. Please sign in again."
+            error = _('Your saved session could not be refreshed. Please sign in again.')
             has_saved_session = False
             allow_login_redirect = True
 

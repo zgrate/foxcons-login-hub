@@ -9,6 +9,7 @@ This Django application serves as an OpenID Connect (OIDC) provider for authenti
 - Admin interface for managing Foxcons event instances
 - Support for refresh tokens for UX optimization
 - Custom claims exposure for authentik policies
+- End-user UI localization (English and Polish)
 
 ## Setup
 
@@ -53,6 +54,21 @@ This Django application serves as an OpenID Connect (OIDC) provider for authenti
 - `/o/userinfo/` - Userinfo endpoint
 - `/bridge/login/` - Bridge login page
 - `/bridge/logout/` - Logout
+
+## Languages
+
+- Supported bridge UI languages: English (`en`) and Polish (`pl`)
+- Users can switch language directly in the bridge UI using the top-right `EN`/`PL` selector
+- URL paths stay unchanged (no language prefixes)
+
+### Updating translations
+
+After changing user-facing text in Python or templates:
+
+```
+./.venv/bin/python manage.py makemessages -l en -l pl --ignore .venv --ignore venv --ignore staticfiles
+./.venv/bin/python manage.py compilemessages
+```
 
 ## Security Notes
 
