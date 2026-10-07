@@ -56,6 +56,7 @@ class NormalizedIdentity:
     foxcons_flags: List[str]
     foxcons_avatar_url: Optional[str]
     # Plain aliases for consumers that expect non-prefixed claim names.
+    picture: Optional[str]
     flags: List[str]
     groups: List[str]
     additional_permissions: List[str]

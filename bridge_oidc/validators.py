@@ -42,6 +42,8 @@ _FOXCONS_CLAIM_SCOPE = {
     "foxcons_bourgeois_status": "openid",
     "foxcons_first_name": "openid",
     "foxcons_last_name": "openid",
+    "foxcons_avatar_url": "openid",
+    "picture": "openid",
 }
 
 
@@ -83,6 +85,8 @@ class BridgeOAuth2Validator(OAuth2Validator):
             out['power'] = out['foxcons_power']
         if 'event_name' not in out and 'foxcons_event_name' in out:
             out['event_name'] = out['foxcons_event_name']
+        if 'picture' not in out and 'foxcons_avatar_url' in out:
+            out['picture'] = out['foxcons_avatar_url']
         if 'groups' not in out:
             event_scope = out.get('event_name') or out.get('foxcons_event_name')
             instance_scope = out.get('foxcons_instance')

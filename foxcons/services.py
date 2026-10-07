@@ -82,6 +82,7 @@ def normalize_identity(instance: FoxconsInstance, email: str, auth_profile: Auth
         foxcons_last_name=event_profile.last_name,
         foxcons_flags=flags,
         foxcons_avatar_url=foxcons_avatar_url,
+        picture=foxcons_avatar_url,
         flags=flags,
         groups=groups,
         additional_permissions=additional_permissions,
