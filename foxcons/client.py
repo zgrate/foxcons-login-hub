@@ -17,12 +17,15 @@ class InvalidResponseError(FoxconsClientError):
 class RefreshTokenError(FoxconsClientError):
     pass
 
+def normalize_base_url(base_url: str) -> str:
+    return base_url[:-1] if base_url.endswith('/') else base_url
+
 class FoxconsClient:
     def __init__(self, timeout: int = 30):
         self.timeout = timeout
 
     def login(self, base_url: str, username: str, password: str) -> LoginResponse:
-        url = f"{base_url}/app/auth/login"
+        url = f"{normalize_base_url(base_url)}/app/auth/login"
         data = {"username": username, "password": password}
         try:
             response = requests.post(url, json=data, timeout=self.timeout)
@@ -40,7 +43,7 @@ class FoxconsClient:
             raise InvalidResponseError(f"Invalid response: {e}")
 
     def refresh(self, base_url: str, refresh_token: str) -> LoginResponse:
-        url = f"{base_url}/app/auth/refresh-token"
+        url = f"{normalize_base_url(base_url)}/app/auth/refresh-token"
         data = {"refreshToken": refresh_token}
         try:
             response = requests.post(url, json=data, timeout=self.timeout)
@@ -58,7 +61,7 @@ class FoxconsClient:
             raise InvalidResponseError(f"Invalid response: {e}")
 
     def get_auth_profile(self, base_url: str, access_token: str) -> AuthProfile:
-        url = f"{base_url}/app/auth/profile"
+        url = f"{normalize_base_url(base_url)}/app/auth/profile"
         headers = {"Authorization": f"Bearer {access_token}"}
         try:
             response = requests.get(url, headers=headers, timeout=self.timeout)
@@ -79,7 +82,7 @@ class FoxconsClient:
             raise InvalidResponseError(f"Invalid response: {e}")
 
     def get_event_profile(self, base_url: str, access_token: str) -> EventProfile:
-        url = f"{base_url}/app/event/profile"
+        url = f"{normalize_base_url(base_url)}/app/event/profile"
         headers = {"Authorization": f"Bearer {access_token}"}
         try:
             response = requests.get(url, headers=headers, timeout=self.timeout)

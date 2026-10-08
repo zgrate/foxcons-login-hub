@@ -1,4 +1,4 @@
-from .client import FoxconsClient, FoxconsClientError
+from .client import FoxconsClient, FoxconsClientError, normalize_base_url
 from .types import NormalizedIdentity, AuthProfile, EventProfile
 from instances.models import FoxconsInstance
 from typing import Tuple
@@ -59,7 +59,7 @@ def normalize_identity(instance: FoxconsInstance, email: str, auth_profile: Auth
     foxcons_avatar_url = None
     if isinstance(avatar_file, dict) and avatar_file.get('id'):
         foxcons_avatar_url = (
-            f"{instance.base_url}/app/event/default/files/{avatar_file['id']}?size=std-small"
+            f"{normalize_base_url(instance.base_url)}/app/event/default/files/{avatar_file['id']}?size=std-small"
         )
 
     return NormalizedIdentity(
