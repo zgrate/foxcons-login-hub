@@ -74,6 +74,17 @@
         </div>
         {% endfor %}
         </div>
+
+        {% if email_otp_enabled %}
+        <div class="mt-5 text-center">
+          <a
+            href="{% url 'bridge_oidc:email_code_request' %}{% if oidc_query %}?{{ oidc_query }}{% endif %}"
+            class="text-sky-100/55 hover:text-sky-100 text-sm transition-colors duration-150"
+          >
+            {% trans "Can't access your event? Sign in with an email code" %}
+          </a>
+        </div>
+        {% endif %}
       </div>
 
       <div id="credentials-section" class="{% if not selected_instance_id %}hidden{% endif %} border-t border-sky-200/10 glass-darker">

@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.core.cache import cache
+from django.core.mail import send_mail
 from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -7,6 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.contrib.auth import login as auth_login
 from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext
 from instances.models import FoxconsInstance
 from foxcons.services import authenticate_with_password, authenticate_with_refresh
 from foxcons.client import FoxconsClientError
@@ -14,9 +16,30 @@ from oauth2_provider.exceptions import OAuthToolkitError
 from oauth2_provider.views.oidc import UserInfoView
 from oauth2_provider.views.base import AuthorizationView as BaseAuthorizationView
 from oauth2_provider.views import TokenView
-from .models import TemporaryAuthState
+from .models import TemporaryAuthState, EmailLoginCode
 from .auth import SessionOnlyUser
+from datetime import timedelta
+import hashlib
 import json
+import logging
+import secrets
+import string
+
+logger = logging.getLogger(__name__)
+
+OIDC_PARAM_NAMES = [
+    'client_id', 'redirect_uri', 'scope', 'response_type', 'state', 'nonce',
+    'code_challenge', 'code_challenge_method',
+]
+
+
+def _extract_oidc_params(request, include_post=True):
+    params = {}
+    for name in OIDC_PARAM_NAMES:
+        value = request.GET.get(name) or (include_post and request.POST.get(name))
+        if value:
+            params[name] = value
+    return params
 
 
 def _hex_to_rgb(color: str) -> tuple[int, int, int]:
@@ -67,24 +90,24 @@ def _theme_context_for_instance(instance: FoxconsInstance | None) -> dict:
     }
 
 
-def _login_rate_limit_key(request, email: str) -> str:
+def _login_rate_limit_key(request, email: str, scope: str = 'bridge-login') -> str:
     forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR', '')
     ip = forwarded_for.split(',')[0].strip() if forwarded_for else request.META.get('REMOTE_ADDR', 'unknown')
     normalized_email = (email or '').strip().lower()
-    return f"bridge-login:{ip}:{normalized_email}"
+    return f"{scope}:{ip}:{normalized_email}"
 
 
-def _is_login_rate_limited(request, email: str) -> bool:
+def _is_login_rate_limited(request, email: str, scope: str = 'bridge-login') -> bool:
     max_attempts = max(0, int(getattr(settings, 'BRIDGE_LOGIN_RATE_LIMIT_ATTEMPTS', 10)))
     if max_attempts == 0:
         return False
-    key = _login_rate_limit_key(request, email)
+    key = _login_rate_limit_key(request, email, scope)
     attempts = int(cache.get(key, 0) or 0)
     return attempts >= max_attempts
 
 
-def _record_login_attempt(request, email: str, success: bool) -> None:
-    key = _login_rate_limit_key(request, email)
+def _record_login_attempt(request, email: str, success: bool, scope: str = 'bridge-login') -> None:
+    key = _login_rate_limit_key(request, email, scope)
     if success:
         cache.delete(key)
         return
@@ -99,14 +122,10 @@ def _record_login_attempt(request, email: str, success: bool) -> None:
 
 def login_view(request):
     from urllib.parse import urlencode
-    
+
     # Extract and preserve OIDC authorization parameters from request.
     # On POST, keep values from hidden fields so the flow can resume.
-    oidc_params = {}
-    for param in ['client_id', 'redirect_uri', 'scope', 'response_type', 'state', 'nonce', 'code_challenge', 'code_challenge_method']:
-        value = request.GET.get(param) or request.POST.get(param)
-        if value:
-            oidc_params[param] = value
+    oidc_params = _extract_oidc_params(request)
 
     error = None
     if request.method == 'POST':
@@ -154,6 +173,8 @@ def login_view(request):
         'email': email,
         'error': error,
         'oidc_params': oidc_params,
+        'oidc_query': urlencode(oidc_params) if oidc_params else '',
+        'email_otp_enabled': settings.EMAIL_OTP_LOGIN_ENABLED,
     }
     context.update(_theme_context_for_instance(selected_instance))
     return render(request, 'bridge_oidc/login.html', context)
@@ -162,11 +183,7 @@ def login_view(request):
 def continue_view(request):
     from urllib.parse import urlencode
 
-    oidc_params = {}
-    for param in ['client_id', 'redirect_uri', 'scope', 'response_type', 'state', 'nonce', 'code_challenge', 'code_challenge_method']:
-        value = request.GET.get(param) or request.POST.get(param)
-        if value:
-            oidc_params[param] = value
+    oidc_params = _extract_oidc_params(request)
 
     has_saved_session = (
         'foxcons_refresh_token' in request.session
@@ -258,6 +275,150 @@ def logout_view(request):
     request.session.flush()
     return redirect(reverse('bridge_oidc:login'))
 
+
+def _generate_otp_code() -> str:
+    alphabet = string.ascii_uppercase + string.digits
+    return ''.join(secrets.choice(alphabet) for _ in range(8))
+
+
+def _hash_otp_code(code: str) -> str:
+    return hashlib.sha256((code or '').strip().upper().encode()).hexdigest()
+
+
+def email_code_request_view(request):
+    """
+    Step 1 of the email-only fallback login: collect an email address and
+    send it an 8-character one-time code. Enabled only via
+    settings.EMAIL_OTP_LOGIN_ENABLED, for cases where an event has purged
+    its data and the normal Foxcons-backed login can no longer succeed.
+    """
+    if not settings.EMAIL_OTP_LOGIN_ENABLED:
+        return redirect(reverse('bridge_oidc:login'))
+
+    from urllib.parse import urlencode
+
+    oidc_params = _extract_oidc_params(request)
+    error = None
+    submitted_email = ''
+
+    if request.method == 'POST':
+        from django.core.exceptions import ValidationError
+        from django.core.validators import validate_email
+
+        submitted_email = (request.POST.get('email') or '').strip().lower()
+        if _is_login_rate_limited(request, submitted_email, scope='bridge-otp-request'):
+            error = _('Too many code requests. Please wait a few minutes and try again.')
+        else:
+            try:
+                validate_email(submitted_email)
+            except ValidationError:
+                error = _('Enter a valid email address.')
+            else:
+                # Every request counts toward the limit, whether or not the
+                # send below succeeds - this throttles inbox spam, not just
+                # failures.
+                _record_login_attempt(request, submitted_email, success=False, scope='bridge-otp-request')
+
+                code = _generate_otp_code()
+                EmailLoginCode.objects.filter(email=submitted_email, consumed=False).delete()
+                EmailLoginCode.objects.create(
+                    email=submitted_email,
+                    code_hash=_hash_otp_code(code),
+                    expires_at=timezone.now() + timedelta(minutes=settings.EMAIL_OTP_CODE_TTL_MINUTES),
+                )
+                try:
+                    send_mail(
+                        subject=gettext('Your Foxcons sign-in code'),
+                        message=gettext(
+                            'Your sign-in code is: %(code)s\n\n'
+                            'This code expires in %(minutes)d minutes.'
+                        ) % {'code': code, 'minutes': settings.EMAIL_OTP_CODE_TTL_MINUTES},
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        recipient_list=[submitted_email],
+                        fail_silently=False,
+                    )
+                except Exception:
+                    logger.exception("Failed to send email login code")
+                    error = _('Could not send the code email. Please try again shortly.')
+                else:
+                    request.session['otp_pending_email'] = submitted_email
+                    request.session.save()
+                    url = reverse('bridge_oidc:email_code_verify')
+                    if oidc_params:
+                        url = f"{url}?{urlencode(oidc_params)}"
+                    return redirect(url)
+
+    context = {
+        'email': submitted_email,
+        'error': error,
+        'oidc_params': oidc_params,
+    }
+    context.update(_theme_context_for_instance(None))
+    return render(request, 'bridge_oidc/email_code_request.html', context)
+
+
+def email_code_verify_view(request):
+    """
+    Step 2 of the email-only fallback login: verify the code and, on
+    success, sign the user in with the minimal possible claim set
+    (sub/email/email_verified only - no foxcons_* claims, since none exist
+    for an identity verified by email alone).
+    """
+    if not settings.EMAIL_OTP_LOGIN_ENABLED:
+        return redirect(reverse('bridge_oidc:login'))
+
+    from urllib.parse import urlencode
+
+    oidc_params = _extract_oidc_params(request)
+    email = request.session.get('otp_pending_email')
+    if not email:
+        url = reverse('bridge_oidc:email_code_request')
+        if oidc_params:
+            url = f"{url}?{urlencode(oidc_params)}"
+        return redirect(url)
+
+    error = None
+    if request.method == 'POST':
+        submitted_code = request.POST.get('code') or ''
+        if _is_login_rate_limited(request, email, scope='bridge-otp-verify'):
+            error = _('Too many attempts. Please request a new code.')
+        else:
+            otp = EmailLoginCode.objects.filter(email=email).order_by('-created_at').first()
+            if otp and otp.is_valid() and otp.code_hash == _hash_otp_code(submitted_code):
+                otp.consumed = True
+                otp.save(update_fields=['consumed'])
+                _record_login_attempt(request, email, success=True, scope='bridge-otp-verify')
+
+                request.session.pop('otp_pending_email', None)
+                request.session['selected_email'] = email
+                request.session['normalized_claims'] = {
+                    'sub': f'email:{email}',
+                    'email': email,
+                    'email_verified': True,
+                }
+                request.session['last_auth_at'] = str(timezone.now())
+                request.session['bridge_authorize_confirmed'] = True
+                request.session.save()
+
+                if oidc_params:
+                    return redirect(f"/o/authorize/?{urlencode(oidc_params)}")
+                return redirect('/o/authorize/')
+
+            _record_login_attempt(request, email, success=False, scope='bridge-otp-verify')
+            if otp:
+                otp.attempts += 1
+                otp.save(update_fields=['attempts'])
+            error = _('Invalid or expired code.')
+
+    context = {
+        'email': email,
+        'error': error,
+        'oidc_params': oidc_params,
+    }
+    context.update(_theme_context_for_instance(None))
+    return render(request, 'bridge_oidc/email_code_verify.html', context)
+
+
 from django.views.decorators.csrf import csrf_exempt
 
 class BridgeAuthorizationView(BaseAuthorizationView):
@@ -292,12 +453,8 @@ class BridgeAuthorizationView(BaseAuthorizationView):
         if not request.user.is_authenticated:
             # User hasn't logged in through bridge yet
             # Redirect to bridge login, preserving OIDC params
-            oidc_params = {}
-            for param in ['client_id', 'redirect_uri', 'scope', 'response_type', 'state', 'nonce', 'code_challenge', 'code_challenge_method']:
-                value = request.GET.get(param)
-                if value:
-                    oidc_params[param] = value
-            
+            oidc_params = _extract_oidc_params(request, include_post=False)
+
             if oidc_params:
                 return redirect(f"/bridge/login/?{urlencode(oidc_params)}")
             else:
@@ -308,11 +465,7 @@ class BridgeAuthorizationView(BaseAuthorizationView):
         if request.method == 'GET':
             confirmed = request.session.pop('bridge_authorize_confirmed', False)
             if not confirmed:
-                oidc_params = {}
-                for param in ['client_id', 'redirect_uri', 'scope', 'response_type', 'state', 'nonce', 'code_challenge', 'code_challenge_method']:
-                    value = request.GET.get(param)
-                    if value:
-                        oidc_params[param] = value
+                oidc_params = _extract_oidc_params(request, include_post=False)
                 if oidc_params:
                     return redirect(f"/bridge/continue/?{urlencode(oidc_params)}")
                 return redirect('/bridge/continue/')
@@ -392,7 +545,7 @@ class BridgeAuthorizationView(BaseAuthorizationView):
         # Add user info from normalized claims
         claims = self.request.session.get('normalized_claims', {})
         context['user_email'] = claims.get('email', 'Unknown')
-        context['user_name'] = claims.get('name', claims.get('username', 'Unknown'))
+        context['user_name'] = claims.get('name') or claims.get('username') or claims.get('email', 'Unknown')
         context['logout_url'] = reverse('bridge_oidc:logout')
         instance = FoxconsInstance.objects.filter(id=self.request.session.get('selected_instance_id')).first()
         context.update(_theme_context_for_instance(instance))
@@ -430,7 +583,7 @@ class BridgeTokenView(TokenView):
                         old_claims = FoxconsTokenClaims.objects.filter(
                             access_token_key=old_refresh.access_token.token
                         ).first()
-                        if old_claims:
+                        if old_claims and not old_claims.is_expired():
                             claims = old_claims.claims
                 except Exception:
                     pass

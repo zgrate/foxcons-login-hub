@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-18 22:56+0200\n"
+"POT-Creation-Date: 2026-10-08 00:29+0000\n"
 "PO-Revision-Date: 2026-05-18 23:05+0200\n"
 "Last-Translator: Foxcons Bridge Team <noreply@example.com>\n"
 "Language-Team: English\n"
@@ -16,6 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
 #: bridge_oidc/templates/bridge_oidc/authorize.html:4
 #: bridge_oidc/templates/bridge_oidc/authorize.html:78
 msgid "Authorize"
@@ -83,8 +84,67 @@ msgstr ""
 msgid "Continue as %(display_name)s"
 msgstr ""
 
+#: bridge_oidc/templates/bridge_oidc/email_code_request.html:4
+msgid "Email Sign In"
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/email_code_request.html:11
+msgid "Sign In With Email"
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/email_code_request.html:13
+msgid ""
+"Can't access your event anymore? We'll email you a one-time code to continue."
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/email_code_request.html:39
+#: bridge_oidc/templates/bridge_oidc/login.html:115
+msgid "Email"
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/email_code_request.html:51
+#: bridge_oidc/templates/bridge_oidc/login.html:127
+msgid "you@example.com"
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/email_code_request.html:63
+msgid "Send Me a Code"
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/email_code_request.html:73
+#: bridge_oidc/templates/bridge_oidc/email_code_verify.html:70
+msgid "Back to event sign in"
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/email_code_verify.html:4
+msgid "Enter Code"
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/email_code_verify.html:11
+msgid "Enter Your Code"
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/email_code_verify.html:13
+#, python-format
+msgid ""
+"We sent an 8-character code to %(email)s. It expires shortly, so enter it "
+"soon."
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/email_code_verify.html:39
+msgid "8-character code"
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/email_code_verify.html:56
+msgid "Verify and Sign In"
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/email_code_verify.html:66
+msgid "Use a different email"
+msgstr ""
+
 #: bridge_oidc/templates/bridge_oidc/login.html:4
-#: bridge_oidc/templates/bridge_oidc/login.html:148
+#: bridge_oidc/templates/bridge_oidc/login.html:159
 msgid "Sign In"
 msgstr ""
 
@@ -121,34 +181,62 @@ msgstr ""
 msgid "No events are currently available."
 msgstr ""
 
-#: bridge_oidc/templates/bridge_oidc/login.html:81
+#: bridge_oidc/templates/bridge_oidc/login.html:84
+msgid "Can't access your event? Sign in with an email code"
+msgstr ""
+
+#: bridge_oidc/templates/bridge_oidc/login.html:92
 msgid "Sign in to"
 msgstr ""
 
-#: bridge_oidc/templates/bridge_oidc/login.html:104
-msgid "Email"
-msgstr ""
-
-#: bridge_oidc/templates/bridge_oidc/login.html:116
-msgid "you@example.com"
-msgstr ""
-
-#: bridge_oidc/templates/bridge_oidc/login.html:125
+#: bridge_oidc/templates/bridge_oidc/login.html:136
 msgid "Password"
 msgstr ""
 
-#: bridge_oidc/templates/bridge_oidc/login.html:136
+#: bridge_oidc/templates/bridge_oidc/login.html:147
 msgid "••••••••"
 msgstr ""
 
-#: bridge_oidc/views.py:117
+#: bridge_oidc/views.py:136
 msgid "Too many login attempts. Please wait a few minutes and try again."
 msgstr ""
 
-#: bridge_oidc/views.py:142
+#: bridge_oidc/views.py:161
 msgid "Invalid credentials or instance unavailable"
 msgstr ""
 
-#: bridge_oidc/views.py:218
+#: bridge_oidc/views.py:235
 msgid "Your saved session could not be refreshed. Please sign in again."
+msgstr ""
+
+#: bridge_oidc/views.py:310
+msgid "Too many code requests. Please wait a few minutes and try again."
+msgstr ""
+
+#: bridge_oidc/views.py:315
+msgid "Enter a valid email address."
+msgstr ""
+
+#: bridge_oidc/views.py:331
+msgid "Your Foxcons sign-in code"
+msgstr ""
+
+#: bridge_oidc/views.py:333
+#, python-format
+msgid ""
+"Your sign-in code is: %(code)s\n"
+"\n"
+"This code expires in %(minutes)d minutes."
+msgstr ""
+
+#: bridge_oidc/views.py:342
+msgid "Could not send the code email. Please try again shortly."
+msgstr ""
+
+#: bridge_oidc/views.py:384
+msgid "Too many attempts. Please request a new code."
+msgstr ""
+
+#: bridge_oidc/views.py:411
+msgid "Invalid or expired code."
 msgstr ""

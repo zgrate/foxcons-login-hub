@@ -74,6 +74,25 @@ ALLOWED_HOSTS = env_csv(
     default=['127.0.0.1', 'localhost', 'testserver'] if DEBUG else [],
 )
 
+# Email + verification-code fallback login (for when an event's data has been
+# purged and the normal Foxcons-backed login can no longer work).
+EMAIL_OTP_LOGIN_ENABLED = env_bool('EMAIL_OTP_LOGIN_ENABLED', default=False)
+EMAIL_OTP_CODE_TTL_MINUTES = int(env_str('EMAIL_OTP_CODE_TTL_MINUTES', '5'))
+
+EMAIL_BACKEND = (
+    'django.core.mail.backends.smtp.EmailBackend'
+    if EMAIL_OTP_LOGIN_ENABLED
+    else 'django.core.mail.backends.console.EmailBackend'
+)
+EMAIL_HOST = env_str('EMAIL_HOST', '')
+EMAIL_PORT = int(env_str('EMAIL_PORT', '587'))
+EMAIL_HOST_USER = env_str('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = env_str('EMAIL_HOST_PASSWORD', '')
+EMAIL_USE_TLS = env_bool('EMAIL_USE_TLS', default=True)
+EMAIL_USE_SSL = env_bool('EMAIL_USE_SSL', default=False)
+EMAIL_TIMEOUT = int(env_str('EMAIL_TIMEOUT', '10'))
+DEFAULT_FROM_EMAIL = env_str('DEFAULT_FROM_EMAIL', 'no-reply@localhost')
+
 if not DEBUG:
     if SECRET_KEY.startswith('django-insecure-'):
         raise ImproperlyConfigured('Set SECRET_KEY in the environment when DEBUG is False.')
@@ -81,6 +100,11 @@ if not DEBUG:
         raise ImproperlyConfigured('Set OIDC_RSA_PRIVATE_KEY in the environment when DEBUG is False.')
     if not ALLOWED_HOSTS:
         raise ImproperlyConfigured('Set ALLOWED_HOSTS in the environment when DEBUG is False.')
+    if EMAIL_OTP_LOGIN_ENABLED and (not EMAIL_HOST or not DEFAULT_FROM_EMAIL):
+        raise ImproperlyConfigured(
+            'Set EMAIL_HOST and DEFAULT_FROM_EMAIL in the environment when '
+            'EMAIL_OTP_LOGIN_ENABLED is True and DEBUG is False.'
+        )
 
 
 # Application definition
@@ -233,3 +257,9 @@ SECURE_PROXY_SSL_HEADER = env_optional_tuple('SECURE_PROXY_SSL_HEADER')
 
 BRIDGE_LOGIN_RATE_LIMIT_ATTEMPTS = int(env_str('BRIDGE_LOGIN_RATE_LIMIT_ATTEMPTS', '10'))
 BRIDGE_LOGIN_RATE_LIMIT_WINDOW_SECONDS = int(env_str('BRIDGE_LOGIN_RATE_LIMIT_WINDOW_SECONDS', '300'))
+
+# Max age of a stored FoxconsTokenClaims row before it's treated as stale and
+# refused for userinfo/refresh (forces re-authentication against Foxcons
+# instead of perpetually recycling identity data, e.g. an avatar file id,
+# captured at the original login).
+BRIDGE_TOKEN_CLAIMS_TTL_SECONDS = int(env_str('BRIDGE_TOKEN_CLAIMS_TTL_SECONDS', str(24 * 3600)))

@@ -30,5 +30,33 @@ class FoxconsTokenClaims(models.Model):
     claims = models.JSONField()
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def is_expired(self):
+        from django.conf import settings
+        ttl_seconds = settings.BRIDGE_TOKEN_CLAIMS_TTL_SECONDS
+        return timezone.now() - self.created_at > timedelta(seconds=ttl_seconds)
+
     def __str__(self):
         return f"Claims for token {self.access_token_key[:12]}…"
+
+
+class EmailLoginCode(models.Model):
+    """
+    One-time verification code for the email-only fallback login.
+
+    Used when a FoxconsInstance has purged its event data and the normal
+    password-based login can no longer succeed. The code is hashed at rest
+    since, unlike the external Foxcons password, it is a credential this
+    app itself issues and must verify.
+    """
+    email = models.EmailField(db_index=True)
+    code_hash = models.CharField(max_length=64)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    attempts = models.PositiveSmallIntegerField(default=0)
+    consumed = models.BooleanField(default=False)
+
+    def is_valid(self):
+        return not self.consumed and timezone.now() < self.expires_at
+
+    def __str__(self):
+        return f"EmailLoginCode for {self.email}"

@@ -127,7 +127,7 @@ class BridgeOAuth2Validator(OAuth2Validator):
         if token_str:
             try:
                 token_claims = FoxconsTokenClaims.objects.filter(access_token_key=token_str).first()
-                if token_claims:
+                if token_claims and not token_claims.is_expired():
                     return self._ensure_alias_claims(token_claims.claims)
             except Exception:
                 logger.exception("Error reading FoxconsTokenClaims in get_additional_claims")

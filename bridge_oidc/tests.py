@@ -6,6 +6,8 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from oauth2_provider.models import Application
 from unittest.mock import patch, MagicMock
+from django.core import mail
+from .models import EmailLoginCode
 import json
 
 
@@ -620,4 +622,143 @@ class OIDCTokenEndpointTestCase(TestCase):
     def test_service_account_has_valid_last_login(self):
         """Test that service account has a valid last_login for oauth2_provider."""
         assert self.service_user.last_login is not None, "Service account must have last_login set"
+
+
+@override_settings(
+    EMAIL_OTP_LOGIN_ENABLED=True,
+    EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+)
+class EmailOtpLoginTestCase(TestCase):
+    """Test the email + verification-code fallback login."""
+
+    def setUp(self):
+        self.client = DjangoTestClient()
+        mail.outbox = []
+
+    def _get_sent_code(self):
+        body = mail.outbox[-1].body
+        return body.split('code is: ')[1].split()[0]
+
+    def test_disabled_by_default_redirects_and_hides_link(self):
+        """Feature must be a no-op unless explicitly enabled."""
+        with override_settings(EMAIL_OTP_LOGIN_ENABLED=False):
+            request_resp = self.client.get('/bridge/email-code/', follow=False)
+            assert request_resp.status_code == 302
+            assert '/bridge/login/' in request_resp.url
+
+            verify_resp = self.client.get('/bridge/email-code/verify/', follow=False)
+            assert verify_resp.status_code == 302
+            assert '/bridge/login/' in verify_resp.url
+
+            login_resp = self.client.get('/bridge/login/')
+            assert 'email-code' not in login_resp.content.decode()
+
+    def test_login_page_shows_link_when_enabled(self):
+        response = self.client.get('/bridge/login/')
+        assert 'email-code' in response.content.decode()
+
+    def test_request_sends_code_and_redirects_to_verify(self):
+        response = self.client.post('/bridge/email-code/', {'email': 'request-step@example.com'}, follow=False)
+
+        assert response.status_code == 302
+        assert '/bridge/email-code/verify/' in response.url
+        assert len(mail.outbox) == 1
+        assert mail.outbox[0].to == ['request-step@example.com']
+        assert EmailLoginCode.objects.filter(email='request-step@example.com').exists()
+
+    def test_request_rejects_invalid_email(self):
+        response = self.client.post('/bridge/email-code/', {'email': 'not-an-email'})
+
+        assert response.status_code == 200
+        assert 'Enter a valid email address.' in response.content.decode()
+        assert len(mail.outbox) == 0
+
+    def test_verify_with_correct_code_signs_in_with_minimal_claims_only(self):
+        email = 'verify-correct@example.com'
+        self.client.post('/bridge/email-code/', {'email': email})
+        code = self._get_sent_code()
+
+        response = self.client.post('/bridge/email-code/verify/', {'code': code}, follow=False)
+
+        assert response.status_code == 302
+        assert '/o/authorize/' in response.url
+
+        session = self.client.session
+        assert session['selected_email'] == email
+        assert session['bridge_authorize_confirmed'] is True
+        claims = session['normalized_claims']
+        assert claims == {
+            'sub': f'email:{email}',
+            'email': email,
+            'email_verified': True,
+        }
+        # Only email claims - no foxcons_* identity data should leak in.
+        assert not any(key.startswith('foxcons_') for key in claims)
+
+    def test_verify_with_wrong_code_shows_error_and_does_not_sign_in(self):
+        self.client.post('/bridge/email-code/', {'email': 'verify-wrong@example.com'})
+        self._get_sent_code()
+
+        response = self.client.post('/bridge/email-code/verify/', {'code': 'WRONGCOD'})
+
+        assert response.status_code == 200
+        assert 'Invalid or expired code.' in response.content.decode()
+        assert 'normalized_claims' not in self.client.session
+
+    def test_consumed_code_cannot_be_reused(self):
+        email = 'replay@example.com'
+        self.client.post('/bridge/email-code/', {'email': email})
+        code = self._get_sent_code()
+        self.client.post('/bridge/email-code/verify/', {'code': code})
+
+        # Re-seed the pending-email marker to simulate a resubmission of the
+        # same, now-consumed code before the session moved on.
+        session = self.client.session
+        session['otp_pending_email'] = email
+        session.save()
+
+        replay = self.client.post('/bridge/email-code/verify/', {'code': code})
+        assert replay.status_code == 200
+        assert 'Invalid or expired code.' in replay.content.decode()
+
+    def test_verify_without_pending_email_redirects_to_request(self):
+        response = self.client.get('/bridge/email-code/verify/', follow=False)
+        assert response.status_code == 302
+        assert '/bridge/email-code/' in response.url
+
+    @override_settings(BRIDGE_LOGIN_RATE_LIMIT_ATTEMPTS=1, BRIDGE_LOGIN_RATE_LIMIT_WINDOW_SECONDS=300)
+    def test_request_step_is_rate_limited(self):
+        self.client.post('/bridge/email-code/', {'email': 'ratelimited-request@example.com'})
+        second = self.client.post('/bridge/email-code/', {'email': 'ratelimited-request@example.com'})
+
+        assert 'Too many code requests' in second.content.decode()
+        assert len(mail.outbox) == 1
+
+    @override_settings(BRIDGE_LOGIN_RATE_LIMIT_ATTEMPTS=1, BRIDGE_LOGIN_RATE_LIMIT_WINDOW_SECONDS=300)
+    def test_verify_step_is_rate_limited_after_failed_attempt(self):
+        self.client.post('/bridge/email-code/', {'email': 'ratelimited-verify@example.com'})
+        self._get_sent_code()
+
+        first = self.client.post('/bridge/email-code/verify/', {'code': 'WRONGCOD'})
+        assert 'Invalid or expired code.' in first.content.decode()
+
+        second = self.client.post('/bridge/email-code/verify/', {'code': 'WRONGCOD'})
+        assert 'Too many attempts' in second.content.decode()
+
+    def test_oidc_params_survive_the_full_round_trip(self):
+        oidc_params = {
+            'client_id': 'test_client',
+            'redirect_uri': 'https://callback.example.com/auth',
+            'response_type': 'code',
+            'scope': 'openid email',
+            'state': 'state123',
+        }
+        self.client.post('/bridge/email-code/', {**oidc_params, 'email': 'oidc-roundtrip@example.com'})
+        code = self._get_sent_code()
+
+        response = self.client.post('/bridge/email-code/verify/', {**oidc_params, 'code': code}, follow=False)
+
+        assert response.status_code == 302
+        assert 'client_id=test_client' in response.url
+        assert 'state=state123' in response.url
 
