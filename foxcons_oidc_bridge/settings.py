@@ -236,3 +236,14 @@ SECURE_PROXY_SSL_HEADER = env_optional_tuple('SECURE_PROXY_SSL_HEADER')
 
 BRIDGE_LOGIN_RATE_LIMIT_ATTEMPTS = int(env_str('BRIDGE_LOGIN_RATE_LIMIT_ATTEMPTS', '10'))
 BRIDGE_LOGIN_RATE_LIMIT_WINDOW_SECONDS = int(env_str('BRIDGE_LOGIN_RATE_LIMIT_WINDOW_SECONDS', '300'))
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {'console': {'class': 'logging.StreamHandler'}},
+    'root': {'handlers': ['console'], 'level': 'WARNING'},
+    'loggers': {
+        name: {'handlers': ['console'], 'level': env_str('LOG_LEVEL', 'INFO'), 'propagate': False}
+        for name in ('bridge_oidc', 'foxcons')
+    },
+}

@@ -7,6 +7,7 @@ from django.utils import timezone
 from oauth2_provider.models import Application
 from unittest.mock import patch, MagicMock
 import json
+from types import SimpleNamespace
 
 
 class BridgeLoginFlowTestCase(TestCase):
@@ -645,3 +646,55 @@ class PkceSwitchTestCase(TestCase):
         validator = BridgeOAuth2Validator()
         self.assertTrue(validator.is_pkce_required(default_app.client_id, None))
         self.assertFalse(validator.is_pkce_required(moodle.client_id, None))
+
+
+class AuditLogTestCase(TestCase):
+    def setUp(self):
+        self.instance = FoxconsInstance.objects.create(
+            name='Test Event', slug='test-event', base_url='https://test.example.com', is_active=True
+        )
+
+    @patch('bridge_oidc.views.authenticate_with_password')
+    def test_failed_login_records_reason_without_password(self, mock_auth):
+        from bridge_oidc.models import AuditLog
+        from foxcons.client import InvalidCredentialsError
+        mock_auth.side_effect = InvalidCredentialsError('Invalid credentials')
+
+        self.client.post('/bridge/login/', {
+            'instance': str(self.instance.id), 'email': 'a@example.com', 'password': 'hunter2', 'client_id': 'moodle',
+        })
+
+        row = AuditLog.objects.get(event='login_failed')
+        self.assertFalse(row.success)
+        self.assertEqual((row.email, row.client_id), ('a@example.com', 'moodle'))
+        self.assertIn('InvalidCredentialsError', row.message)
+        self.assertNotIn('hunter2', json.dumps(row.details) + row.message)
+
+    @patch('bridge_oidc.views.authenticate_with_password')
+    def test_successful_login_recorded(self, mock_auth):
+        from bridge_oidc.models import AuditLog
+        mock_auth.return_value = (SimpleNamespace(email='a@example.com'), 'tok', 'ref')
+
+        self.client.post('/bridge/login/', {'instance': str(self.instance.id), 'email': 'a@example.com', 'password': 'x'})
+
+        row = AuditLog.objects.get(event='login_success')
+        self.assertEqual((row.email, row.instance_slug), ('a@example.com', 'test-event'))
+
+    def test_audit_drops_secrets_and_never_raises(self):
+        from bridge_oidc.audit import audit
+        from bridge_oidc.models import AuditLog
+
+        audit('x', details={'access_token': 't', 'refresh_token': 'r', 'password': 'p', 'grant_type': 'g'})
+        self.assertEqual(AuditLog.objects.get(event='x').details, {'grant_type': 'g'})
+
+        with patch('bridge_oidc.models.AuditLog.objects.create', side_effect=RuntimeError('db down')):
+            audit('y')  # must not raise
+
+    def test_token_failure_recorded_with_error_body(self):
+        from bridge_oidc.models import AuditLog
+
+        self.client.post('/o/token/', {'grant_type': 'authorization_code', 'code': 'bogus', 'client_id': 'nope'})
+
+        row = AuditLog.objects.get(event='token_failed')
+        self.assertEqual(row.client_id, 'nope')
+        self.assertIn('invalid_client', row.message)

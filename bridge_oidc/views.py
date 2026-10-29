@@ -16,7 +16,11 @@ from oauth2_provider.views.base import AuthorizationView as BaseAuthorizationVie
 from oauth2_provider.views import TokenView
 from .models import TemporaryAuthState
 from .auth import SessionOnlyUser
+from .audit import audit, client_ip
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def _hex_to_rgb(color: str) -> tuple[int, int, int]:
@@ -68,10 +72,8 @@ def _theme_context_for_instance(instance: FoxconsInstance | None) -> dict:
 
 
 def _login_rate_limit_key(request, email: str) -> str:
-    forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR', '')
-    ip = forwarded_for.split(',')[0].strip() if forwarded_for else request.META.get('REMOTE_ADDR', 'unknown')
     normalized_email = (email or '').strip().lower()
-    return f"bridge-login:{ip}:{normalized_email}"
+    return f"bridge-login:{client_ip(request)}:{normalized_email}"
 
 
 def _is_login_rate_limited(request, email: str) -> bool:
@@ -115,6 +117,8 @@ def login_view(request):
         password = request.POST.get('password')
         if _is_login_rate_limited(request, email):
             error = _('Too many login attempts. Please wait a few minutes and try again.')
+            audit('login_rate_limited', request, success=False, email=email,
+                  client_id=oidc_params.get('client_id'), details={'instance_id': instance_id})
         else:
             try:
                 instance = FoxconsInstance.objects.get(id=instance_id, is_active=True)
@@ -130,6 +134,7 @@ def login_view(request):
                 request.session['bridge_authorize_confirmed'] = True
                 request.session.save()
                 _record_login_attempt(request, email, success=True)
+                audit('login_success', request, client_id=oidc_params.get('client_id'))
 
                 # Build redirect URL preserving OIDC params
                 if oidc_params:
@@ -137,8 +142,11 @@ def login_view(request):
                 else:
                     redirect_url = "/o/authorize/"
                 return redirect(redirect_url)
-            except (FoxconsInstance.DoesNotExist, FoxconsClientError, ValueError):
+            except (FoxconsInstance.DoesNotExist, FoxconsClientError, ValueError) as exc:
                 _record_login_attempt(request, email, success=False)
+                audit('login_failed', request, success=False, email=email,
+                      client_id=oidc_params.get('client_id'),
+                      message=f"{type(exc).__name__}: {exc}", details={'instance_id': instance_id})
                 error = _('Invalid credentials or instance unavailable')
 
     instances = FoxconsInstance.objects.filter(is_active=True).order_by('display_order', 'name')
@@ -189,6 +197,7 @@ def continue_view(request):
             request.session['bridge_authorize_confirmed'] = True
             request.session['last_auth_at'] = request.session.get('last_auth_at', str(timezone.now()))
             request.session.save()
+            audit('session_continue', request, client_id=oidc_params.get('client_id'))
 
             if oidc_params:
                 return redirect(f"/o/authorize/?{urlencode(oidc_params)}")
@@ -207,11 +216,14 @@ def continue_view(request):
             request.session['last_auth_at'] = str(timezone.now())
             request.session['bridge_authorize_confirmed'] = True
             request.session.save()
+            audit('session_refresh_success', request, client_id=oidc_params.get('client_id'))
 
             if oidc_params:
                 return redirect(f"/o/authorize/?{urlencode(oidc_params)}")
             return redirect('/o/authorize/')
-        except (FoxconsInstance.DoesNotExist, FoxconsClientError, ValueError):
+        except (FoxconsInstance.DoesNotExist, FoxconsClientError, ValueError) as exc:
+            audit('session_refresh_failed', request, success=False, client_id=oidc_params.get('client_id'),
+                  message=f"{type(exc).__name__}: {exc}")
             for key in ['foxcons_access_token', 'foxcons_refresh_token', 'normalized_claims', 'last_auth_at']:
                 request.session.pop(key, None)
             request.session.pop('bridge_authorize_confirmed', None)
@@ -220,6 +232,7 @@ def continue_view(request):
             allow_login_redirect = True
 
     elif request.method == 'POST' and action == 'switch':
+        audit('account_switch', request, client_id=oidc_params.get('client_id'))
         for key in ['foxcons_access_token', 'foxcons_refresh_token', 'normalized_claims', 'last_auth_at']:
             request.session.pop(key, None)
         request.session.pop('bridge_authorize_confirmed', None)
@@ -255,6 +268,7 @@ def continue_view(request):
     return render(request, 'bridge_oidc/continue.html', context)
 
 def logout_view(request):
+    audit('logout', request)
     request.session.flush()
     return redirect(reverse('bridge_oidc:login'))
 
@@ -298,6 +312,8 @@ class BridgeAuthorizationView(BaseAuthorizationView):
                 if value:
                     oidc_params[param] = value
             
+            audit('authorize_redirect_login', request, client_id=oidc_params.get('client_id'),
+                  details={'redirect_uri': oidc_params.get('redirect_uri')})
             if oidc_params:
                 return redirect(f"/bridge/login/?{urlencode(oidc_params)}")
             else:
@@ -334,10 +350,13 @@ class BridgeAuthorizationView(BaseAuthorizationView):
             location = response.get('Location', '')
         except AttributeError:
             return
-        if 'code=' not in location:
-            return
-        parsed = urllib.parse.urlparse(location)
-        params = urllib.parse.parse_qs(parsed.query)
+        params = urllib.parse.parse_qs(urllib.parse.urlparse(location).query)
+        client_id = self.request.GET.get('client_id') or self.request.POST.get('client_id')
+        if params.get('error') or response.status_code >= 400:
+            audit('authorize_error', self.request, success=False, client_id=client_id,
+                  status_code=response.status_code,
+                  message=' '.join(params.get('error', []) + params.get('error_description', [])),
+                  details={'redirect_uri': location.split('?')[0]})
         code = params.get('code', [None])[0]
         if not code:
             return
@@ -345,6 +364,9 @@ class BridgeAuthorizationView(BaseAuthorizationView):
         if claims:
             TemporaryAuthState.objects.filter(auth_code=code).delete()  # prevent duplicates
             TemporaryAuthState.objects.create(auth_code=code, claims=claims)
+        audit('auth_code_issued', self.request, success=bool(claims), client_id=client_id,
+              message='' if claims else 'No normalized_claims in session; token will lack Foxcons claims',
+              details={'redirect_uri': location.split('?')[0]})
 
     def get_form_kwargs(self):
         # Ensure GET parameters are passed to the form as data
@@ -402,6 +424,20 @@ class BridgeAuthorizationView(BaseAuthorizationView):
         # Let oauth2_provider handle errors gracefully
         return super().error_response(error, application, **kwargs)
 
+def _token_client_id(request) -> str:
+    if request.POST.get('client_id'):
+        return request.POST['client_id']
+    auth = request.META.get('HTTP_AUTHORIZATION', '')
+    if auth.startswith('Basic '):
+        import base64
+        from urllib.parse import unquote
+        try:
+            return unquote(base64.b64decode(auth[6:]).decode().split(':', 1)[0])
+        except Exception:
+            return ''
+    return ''
+
+
 class BridgeTokenView(TokenView):
     def create_token_response(self, request):
         """
@@ -433,7 +469,7 @@ class BridgeTokenView(TokenView):
                         if old_claims:
                             claims = old_claims.claims
                 except Exception:
-                    pass
+                    logger.exception("Error copying Foxcons claims for refresh grant")
 
         url, headers, body, status = super().create_token_response(request)
 
@@ -448,8 +484,17 @@ class BridgeTokenView(TokenView):
                         defaults={'claims': claims},
                     )
             except Exception:
-                pass
+                logger.exception("Error storing FoxconsTokenClaims for issued token")
 
+        success = status == 200
+        audit(
+            'token_issued' if success else 'token_failed', request, success=success,
+            client_id=_token_client_id(request),
+            status_code=status, email=(claims or {}).get('email', ''),
+            instance_slug=(claims or {}).get('foxcons_instance', ''),
+            message='' if success else (body or ''),
+            details={'grant_type': request.POST.get('grant_type'), 'claims_found': bool(claims)},
+        )
         return url, headers, body, status
 
 
@@ -458,4 +503,9 @@ class BridgeUserInfoView(UserInfoView):
     Userinfo endpoint. Claims are returned by BridgeOAuth2Validator.get_additional_claims,
     which reads from FoxconsTokenClaims keyed by the bearer access token string.
     """
-    pass
+
+    def dispatch(self, request, *args, **kwargs):
+        response = super().dispatch(request, *args, **kwargs)
+        audit('userinfo', request, success=response.status_code == 200, status_code=response.status_code,
+              message='' if response.status_code == 200 else response.get('WWW-Authenticate', ''))
+        return response

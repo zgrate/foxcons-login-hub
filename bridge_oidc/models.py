@@ -47,3 +47,25 @@ class ApplicationSettings(models.Model):
 
     def __str__(self):
         return f"Settings for {self.application}"
+
+
+class AuditLog(models.Model):
+    """One row per bridge operation (login, refresh, authorize, token, upstream call…) for debugging."""
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    event = models.CharField(max_length=64, db_index=True)
+    success = models.BooleanField(default=True)
+    email = models.CharField(max_length=255, blank=True)
+    instance_slug = models.CharField(max_length=255, blank=True)
+    client_id = models.CharField(max_length=255, blank=True)
+    ip = models.CharField(max_length=64, blank=True)
+    path = models.CharField(max_length=512, blank=True)
+    status_code = models.IntegerField(null=True, blank=True)
+    duration_ms = models.IntegerField(null=True, blank=True)
+    message = models.TextField(blank=True)
+    details = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.created_at:%Y-%m-%d %H:%M:%S} {self.event} {'ok' if self.success else 'FAIL'}"

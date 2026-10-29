@@ -1,3 +1,4 @@
+import time
 import requests
 from typing import Optional
 from .types import LoginResponse, AuthProfile, EventProfile
@@ -24,11 +25,27 @@ class FoxconsClient:
     def __init__(self, timeout: int = 30):
         self.timeout = timeout
 
+    def _request(self, method: str, url: str, **kwargs) -> requests.Response:
+        from bridge_oidc.audit import audit  # lazy: bridge_oidc imports this module
+
+        started = time.monotonic()
+        try:
+            response = getattr(requests, method.lower())(url, timeout=self.timeout, **kwargs)
+        except requests.RequestException as e:
+            audit('upstream_error', success=False, path=url, message=f"{method} {type(e).__name__}: {e}",
+                  duration_ms=int((time.monotonic() - started) * 1000))
+            raise
+        failed = response.status_code >= 400
+        audit('upstream_call', success=not failed, path=url, status_code=response.status_code,
+              duration_ms=int((time.monotonic() - started) * 1000),
+              message=f"{method} {response.status_code}", details={'body': response.text} if failed else None)
+        return response
+
     def login(self, base_url: str, username: str, password: str) -> LoginResponse:
         url = f"{normalize_base_url(base_url)}/app/auth/login"
         data = {"username": username, "password": password}
         try:
-            response = requests.post(url, json=data, timeout=self.timeout)
+            response = self._request('POST', url, json=data)
             if response.status_code == 401:
                 raise InvalidCredentialsError("Invalid credentials")
             response.raise_for_status()
@@ -46,7 +63,7 @@ class FoxconsClient:
         url = f"{normalize_base_url(base_url)}/app/auth/refresh-token"
         data = {"refreshToken": refresh_token}
         try:
-            response = requests.post(url, json=data, timeout=self.timeout)
+            response = self._request('POST', url, json=data)
             if response.status_code == 401:
                 raise RefreshTokenError("Invalid refresh token")
             response.raise_for_status()
@@ -64,7 +81,7 @@ class FoxconsClient:
         url = f"{normalize_base_url(base_url)}/app/auth/profile"
         headers = {"Authorization": f"Bearer {access_token}"}
         try:
-            response = requests.get(url, headers=headers, timeout=self.timeout)
+            response = self._request('GET', url, headers=headers)
             response.raise_for_status()
             json_data = response.json()
             return AuthProfile(
@@ -85,7 +102,7 @@ class FoxconsClient:
         url = f"{normalize_base_url(base_url)}/app/event/profile"
         headers = {"Authorization": f"Bearer {access_token}"}
         try:
-            response = requests.get(url, headers=headers, timeout=self.timeout)
+            response = self._request('GET', url, headers=headers)
             response.raise_for_status()
             json_data = response.json()
             return EventProfile(
