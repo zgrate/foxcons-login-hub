@@ -621,3 +621,27 @@ class OIDCTokenEndpointTestCase(TestCase):
         """Test that service account has a valid last_login for oauth2_provider."""
         assert self.service_user.last_login is not None, "Service account must have last_login set"
 
+
+
+class PkceSwitchTestCase(TestCase):
+    """Per-application PKCE switch (ApplicationSettings.pkce_required)."""
+
+    def _app(self, name):
+        return Application.objects.create(
+            name=name,
+            client_type=Application.CLIENT_CONFIDENTIAL,
+            authorization_grant_type=Application.GRANT_AUTHORIZATION_CODE,
+            redirect_uris='https://example.com/cb',
+        )
+
+    def test_pkce_required_by_default_and_switchable(self):
+        from bridge_oidc.models import ApplicationSettings
+        from bridge_oidc.validators import BridgeOAuth2Validator
+
+        default_app = self._app('default')
+        moodle = self._app('moodle')
+        ApplicationSettings.objects.create(application=moodle, pkce_required=False)
+
+        validator = BridgeOAuth2Validator()
+        self.assertTrue(validator.is_pkce_required(default_app.client_id, None))
+        self.assertFalse(validator.is_pkce_required(moodle.client_id, None))

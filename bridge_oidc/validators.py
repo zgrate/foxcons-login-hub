@@ -68,6 +68,14 @@ class BridgeOAuth2Validator(OAuth2Validator):
     oidc_claim_scope = OAuth2Validator.oidc_claim_scope.copy()
     oidc_claim_scope.update(_FOXCONS_CLAIM_SCOPE)
 
+    def is_pkce_required(self, client_id, request):
+        """PKCE is on unless switched off for this client in admin (ApplicationSettings)."""
+        from .models import ApplicationSettings
+
+        return not ApplicationSettings.objects.filter(
+            application__client_id=client_id, pkce_required=False
+        ).exists()
+
     @staticmethod
     def _ensure_alias_claims(claims):
         """Backfill alias claims for tokens/sessions created before alias support."""

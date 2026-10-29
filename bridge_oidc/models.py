@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from datetime import timedelta
+from oauth2_provider.settings import oauth2_settings
 
 class TemporaryAuthState(models.Model):
     """Store normalized claims indexed by authorization code"""
@@ -32,3 +33,17 @@ class FoxconsTokenClaims(models.Model):
 
     def __str__(self):
         return f"Claims for token {self.access_token_key[:12]}…"
+
+
+class ApplicationSettings(models.Model):
+    """Bridge-specific per-client switches, edited inline on the OAuth Application admin."""
+    application = models.OneToOneField(
+        oauth2_settings.APPLICATION_MODEL, on_delete=models.CASCADE, related_name='bridge_settings'
+    )
+    pkce_required = models.BooleanField(
+        default=True,
+        help_text='Turn off only for clients that cannot send code_challenge (e.g. Moodle).',
+    )
+
+    def __str__(self):
+        return f"Settings for {self.application}"

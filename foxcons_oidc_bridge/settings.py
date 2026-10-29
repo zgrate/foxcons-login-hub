@@ -98,6 +98,9 @@ INSTALLED_APPS = [
     'bridge_oidc',
 ]
 
+# Explicit so migrations can reference the swappable Application model (DOT default).
+OAUTH2_PROVIDER_APPLICATION_MODEL = 'oauth2_provider.Application'
+
 OAUTH2_PROVIDER = {
     'OIDC_ENABLED': True,
     'OIDC_RSA_PRIVATE_KEY': OIDC_RSA_PRIVATE_KEY,
